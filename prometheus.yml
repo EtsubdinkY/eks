@@ -1,0 +1,44 @@
+global:
+  scrape_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - "/etc/config/alerting_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: (.+):10250
+        target_label: __address__
+        replacement: ${1}:10250
+
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+
+  - job_name: 'jaeger'
+    metrics_path: '/metrics'
+    scheme: 'http'
+    static_configs:
+      - targets: ['opentelemetry-demo-jaeger-query:16686']
+
+  - job_name: 'flagd'
+    metrics_path: '/metrics'  # Use the correct path based on the service
+    static_configs:
+      - targets: ['192.168.54.47:8014']  # Updated to the correct port for metrics
+
